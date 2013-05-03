@@ -10,6 +10,8 @@
 //including the digital download 
 include dirname(__FILE__) . '/digital-download/class.digital-downloads.php';
 
+include dirname(__FILE__) . '/includes/class.list-table.php';
+
 
 class LinkedInAuthentication{
 	function __construct(){
@@ -30,6 +32,7 @@ class LinkedInAuthentication{
 	
 	function admin_menu(){ 		
 		add_menu_page('linkedin groups authentication in wordpress', 'Ln Api Keys', 'manage_options', 'ln_auth', array($this, 'linkedin_authentication'));
+		add_submenu_page('ln_auth', 'license page', 'License', 'manage_options', 'ln_license', array(get_class(), 'license_management'));
 	}
 	
   //menupage for groups
@@ -49,6 +52,23 @@ class LinkedInAuthentication{
 		include dirname(__FILE__) . '/includes/linkedin-auth.php';
 	}
 	
+	
+	//page to manage licesne
+	static function license_management(){
+		$License_List = self::get_list_table();
+		
+		include dirname(__FILE__) . '/includes/list-table.php';
+	}
+	
+	
+	static function get_list_table(){
+		if(!class_exists('LnLiscence_List_Table')){
+			include dirname(__FILE__) . '/includes/class.list-table.php';
+		}
+		
+		$listtable = new LnLiscence_List_Table();
+		return $listtable;
+	}
 	
 	
 	/*

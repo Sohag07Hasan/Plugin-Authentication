@@ -18,6 +18,8 @@ class LinkedinDownload_control{
 		
 		//sending email with download links. Using this hook we are also sending a license key
 		//add_filter('edd_purchase_receipt', array(get_class(), 'send_liscense_key'), 10, 3);
+		
+		
 	}
 	
 	
