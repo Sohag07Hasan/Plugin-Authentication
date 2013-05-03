@@ -30,8 +30,7 @@ class LinkedinDownload_control{
 	
 	
 	/*process download*/
-	static function generate_license_key($payment_id, $new_status, $old_status){
-		
+	static function generate_license_key($payment_id, $new_status, $old_status){		
 		
 			// Make sure we don't send a purchase receipt while editing a payment
 		if ( isset( $_POST['edd-action'] ) && $_POST['edd-action'] == 'edit_payment' )
@@ -50,7 +49,7 @@ class LinkedinDownload_control{
 			
 		self::create_a_liscense();
 		//hook to edit the email
-		add_action('edd_email_body_header', 'attach_liscense_key');
+		add_action('edd_email_body_header', array(get_class(), 'attach_liscense_key'));
 		
 	}
 	
@@ -59,7 +58,7 @@ class LinkedinDownload_control{
 	//@hook edd_purchase_receipt
 	static function attach_liscense_key(){
 		if(self::$liscense_key){
-			echo "<h2>LiscenceKey: " . self::$liscense_key . "</h2>";		
+			echo "<h2 style='text-align: center'>LicenseKey: " . self::$liscense_key . "</h2>";		
 		}
 	}
 	
@@ -104,7 +103,21 @@ class LinkedinDownload_control{
 		
 		$wpdb->insert($a, array('l_key'=>self::$liscense_key, 'email'=>self::$email), array('%s', '%s'));
 		
+		if($wpdb->insert_id){
+			self::update_license_meta($wpdb->insert_id, 'generation_date', current_time('timestamp'));
+		}
+		
 		return $wpdb->insert_id;
+	}
+	
+	
+	//update license meta
+	static function update_license_meta($id, $key, $value){
+		global $wpdb;
+		$tables = LinkedInAuthentication::get_tables();
+		extract($tables);
+
+		$wpdb->insert($b, array('ln_id'=>$id, 'meta_key'=>$key, 'meta_value'=>$value), array('%d','%s', '%s'));
 	}
 	
 }

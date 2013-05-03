@@ -38,7 +38,7 @@ class LnLiscence_List_Table extends WP_List_Table{
 			'l_key' => __('Liscence Key'),
 			'email' => __('Email'),
 			'domains' => __('Domains'),
-			'generation_date' => __('Generation Date')
+			'generation_time' => __('Generation Time')
 		);
 		
 		return $columns;
@@ -49,7 +49,7 @@ class LnLiscence_List_Table extends WP_List_Table{
 	function get_sortable_columns(){
 		$sortable_columns = array(
 		//	'email' => array('email', false),
-			'generation_date' => array('generation_date', false)
+			'generation_time' => array('generation_time', false)
 		);
 		
 		return $sortable_columns;
@@ -114,18 +114,19 @@ class LnLiscence_List_Table extends WP_List_Table{
 		
 		
 		$results = $wpdb->get_results($sql);
-		
-	//	var_dump($results);
-		
+			
 		
 		$data = array();
 		if($results){
 			foreach($results as $result){
+				
+				$metas = self::get_license_meta($result->ID);
+				
 				$data[] = array(
 					'ID' => $result->ID,
 					'l_key' => $result->l_key,
 					'email' => $result->email,
-					'generation_date' => 'now',
+					'generation_time' => date("d M, Y", $metas['generation_time']),
 					'domains' => 'http://google.com'
 					
 				);
@@ -139,6 +140,25 @@ class LnLiscence_List_Table extends WP_List_Table{
 		
 	}
 	
+	
+	static function get_license_meta($id){
+		global $wpdb;
+		$tables = LinkedInAuthentication::get_tables();
+		extract($tables);
+		
+		$results = $wpdb->get_results("SELECT * FROM $b WHERE ln_id = '$id'");
+		
+		$data = array();
+		if($results){
+			foreach($results as $result){
+				$data[$result->meta_key] = $result->meta_value;
+			}
+		}
+		
+		return $data;
+	}
+	
+	
 	/* default column checking */
 	function column_default($item, $column_name){
 		switch($column_name){
@@ -146,7 +166,7 @@ class LnLiscence_List_Table extends WP_List_Table{
 			case "email":
 			case 'ID':
 			case 'l_key':
-			case 'generation_date':
+			case 'generation_time':
 			case 'domains':
 				return $item[$column_name];
 				break;
@@ -173,13 +193,16 @@ class LnLiscence_List_Table extends WP_List_Table{
 		
 		
 		$deactivate_href = sprintf('?page=%s&action=%s&id=%s', $_REQUEST['page'],'deactivate',$item['ID']);
+		$del_href = sprintf('?page=%s&action=%s&l_key=%s', $_REQUEST['page'],'delete',$item['l_key']);
 				
 		if($this->get_pagenum()){
 			$deactivate_href = add_query_arg(array('paged'=>$this->get_pagenum()), $deactivate_href);
+			$del_href = add_query_arg(array('paged'=>$this->get_pagenum()), $del_href);
 		}
 		
 		$actions = array(
-			'deactivate' => "<a href='$deactivate_href'>Deactivate</a>"
+			'deactivate' => "<a href='$deactivate_href'>Deactivate</a>",
+			'delete' => "<a href='$del_href'>Delete</a>"
 		);
 		
 		
