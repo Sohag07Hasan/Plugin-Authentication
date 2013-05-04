@@ -3,6 +3,17 @@
 	<h2>Licenses</h2>
 	
 	<?php 
+		if($message){
+			?>
+			
+			<div class="updated"><p><?php echo $message; ?></p></div>
+			
+			<?php 
+		}
+	?>
+	
+	
+	<?php 
 		$action = admin_url('/admin.php?page=ln_license');
 		
 		if($License_List->get_pagenum()){

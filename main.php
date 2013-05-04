@@ -57,8 +57,56 @@ class LinkedInAuthentication{
 	static function license_management(){
 		$License_List = self::get_list_table();
 		
+		if(strlen($License_List->current_action()) > 2){
+			$id = $_REQUEST['id'];
+			if(is_array($id)){
+				$message = count($id) . ' ' . $License_List->current_action() . 'd';				
+			}
+			else{
+				$message = $License_List->current_action() . 'd';
+			}
+			
+			
+			self::handle_actions($id, $License_List->current_action());
+		}
+		
 		include dirname(__FILE__) . '/includes/list-table.php';
 	}
+	
+	
+	/*
+	 * handle list talbe actions
+	 * */
+	
+	static function handle_actions($id, $action){
+		$ids = array();
+		
+		if(is_array($id)){
+			$ids = $id;
+			
+		}
+		else{
+			$ids[] = $id;
+		}
+		
+		//var_dump($ids);
+		
+		switch($action){
+			case 'deactivate':
+			case 'activate':
+				foreach($ids as $id){
+					self::update_license_meta($id, 'status', $action);
+				}
+				break;
+			case 'delete':
+				foreach($ids as $id){
+					self::delete_license_key($id);
+				}
+				break;
+		}		
+	}
+	
+	
 	
 	
 	static function get_list_table(){
@@ -85,11 +133,114 @@ class LinkedInAuthentication{
 	 * */
 	function authenticate_linkedin_application(){
 		if($_GET['get'] == 'linkedin-credentials' && $_GET['type'] == 'json'){
-			$keys = $this->get_global_api_keys();
+			
+			$license_key = $_GET['l_key'];
+			$remote_site_url = $_GET['domain'];
+			
+			if($this->is_valid($license_key, $remote_site_url)){
+				$keys = $this->get_global_api_keys();
+			}
+			else{
+				$keys = array(
+					'api_key' => null,
+					'api_secret' => null,
+					'is_error' => true,
+					'message' => 'Validation Error! Please check the license key or contact with http://www.gourmetdesign.com.au/'
+				);
+			}
+			
 			echo json_encode($keys);
+		//	echo 'a';
+			
 			die();
 		}
 	}
+	
+	
+	
+	
+	//checking the validity
+	function is_valid($license_key, $remote_site_url){
+		global $wpdb;
+		$tables = self::get_tables();
+		extract($tables);
+		
+		$id = $wpdb->get_var("SELECT ID FROM $a WHERE l_key = '$license_key'");
+		
+		if($id){
+			$status = $wpdb->get_var("SELECT meta_value FROM $b WHERE ln_id = '$id' AND meta_key = 'status'");
+						
+			if($status == 'deactivate'){
+				return false;
+			}
+			else{
+
+				$domains = $this->get_license_meta($id, 'domains');
+				
+				if($domains){
+					$domains = unserialize($domains);
+					$domains[$remote_site_url] = current_time('timestamp');
+									
+				}
+				else{
+					$domains[$remote_site_url] = current_time('timestamp');
+				}
+								
+				$this->update_license_meta($id, 'domains', serialize($domains));
+				$this->update_license_meta($id, 'newly_activated', current_time('timestamp'));
+				
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	
+	
+	//update license meta
+	function update_license_meta($id, $key, $value){
+		global $wpdb;
+		$tables = LinkedInAuthentication::get_tables();
+		extract($tables);
+		
+		$is_exist = $wpdb->get_var("SELECT meta_value FROM $b WHERE ln_id = '$id' AND meta_key = '$key'");
+		if($is_exist){
+			$wpdb->update($b, array('meta_value'=>$value), array('ln_id'=>$id, 'meta_key'=>$key), array('%s'), array('%d', '%s'));
+		}
+		else{
+			$wpdb->insert($b, array('ln_id'=>$id, 'meta_key'=>$key, 'meta_value'=>$value), array('%d','%s', '%s'));
+		}
+	}
+	
+	
+	
+	//delete a license key
+	function delete_license_key($id){
+		global $wpdb;
+		$tables = LinkedInAuthentication::get_tables();
+		extract($tables);
+		
+		$sql[] = "DELETE FROM $a WHERE ID = '$id'";
+		$sql[] = "DELETE FROM $b WHERE ln_id = '$id'";
+		
+	//	var_dump($sql); exit;
+		
+		foreach($sql as $s){
+			$wpdb->query($s);
+		}
+	}
+	
+	//get license meta
+	function get_license_meta($id, $key){
+		global $wpdb;
+		$tables = LinkedInAuthentication::get_tables();
+		extract($tables);
+		
+		return $wpdb->get_var("SELECT meta_value FROM $b WHERE ln_id = '$license_key' AND meta_key = '$key'");
+		
+	}
+	
 	
 	
 	/*

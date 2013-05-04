@@ -121,13 +121,20 @@ class LnLiscence_List_Table extends WP_List_Table{
 			foreach($results as $result){
 				
 				$metas = self::get_license_meta($result->ID);
-				
+				$d = '';
+				if($metas['domains']){
+					$domains = unserialize($metas['domains']);
+					foreach($domains as $dom => $time){
+						$d .= $dom . ' ( ' . date("d M, Y", $time) . ' )<br/>';
+					}
+				}
+								
 				$data[] = array(
 					'ID' => $result->ID,
 					'l_key' => $result->l_key,
 					'email' => $result->email,
 					'generation_time' => date("d M, Y", $metas['generation_time']),
-					'domains' => 'http://google.com'
+					'domains' => $d
 					
 				);
 			}
@@ -189,11 +196,23 @@ class LnLiscence_List_Table extends WP_List_Table{
 	/*adding some extra actions links after the first column*/
 	function column_l_key($item){
 		
-		//var_dump($item);
+		$license_meta = self::get_license_meta($item['ID']);
+
+		if($license_meta['status'] == 'activate'){
+			$current_action = 'deactivate';
+			$title = 'Deactivate';
+		}
+		elseif($license_meta['status'] == 'deactivate'){
+			$current_action = 'activate';
+			$title = 'Activate';
+		}
+		else{
+			$current_action = 'deactivate';
+			$title = "Activate";
+		}
 		
-		
-		$deactivate_href = sprintf('?page=%s&action=%s&id=%s', $_REQUEST['page'],'deactivate',$item['ID']);
-		$del_href = sprintf('?page=%s&action=%s&l_key=%s', $_REQUEST['page'],'delete',$item['l_key']);
+		$deactivate_href = sprintf('?page=%s&action=%s&id=%s', $_REQUEST['page'], $current_action , $item['ID']);
+		$del_href = sprintf('?page=%s&action=%s&id=%s', $_REQUEST['page'],'delete',$item['ID']);
 				
 		if($this->get_pagenum()){
 			$deactivate_href = add_query_arg(array('paged'=>$this->get_pagenum()), $deactivate_href);
@@ -201,7 +220,7 @@ class LnLiscence_List_Table extends WP_List_Table{
 		}
 		
 		$actions = array(
-			'deactivate' => "<a href='$deactivate_href'>Deactivate</a>",
+			'deactivate' => "<a href='$deactivate_href'>$title</a>",
 			'delete' => "<a href='$del_href'>Delete</a>"
 		);
 		
@@ -219,7 +238,8 @@ class LnLiscence_List_Table extends WP_List_Table{
 	//bulk actions initialization
 	function get_bulk_actions() {
 		$actions = array(
-	    	'deactivate'    => 'Deactivate'
+	    	'deactivate' => 'Deactivate',
+			'activate' => 'Activate'
 	  	);
 	  	return $actions;
 	}
