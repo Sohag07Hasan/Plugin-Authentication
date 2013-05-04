@@ -337,7 +337,7 @@ class LinkedInAuthentication{
 			    case 'info':	      
 			      
 			      $obj = new stdClass();
-			      $obj->slug = 'linkedin-groups';
+			      $obj->slug = 'main';
 			      $obj->plugin_name = 'LinkedIn Groups for Wordpress';
 			      $obj->new_version = $info['plugin-version'];
 			      $obj->requires = $info['wp-version-required'];
