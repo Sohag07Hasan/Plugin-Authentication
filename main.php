@@ -19,6 +19,9 @@ class LinkedInAuthentication{
 		add_action('init', array($this, 'authenticate_linkedin_application'));
 		
 		
+		add_action('init', array(get_class(), 'auto_update_controlling'), 100);
+		
+		
 		/*
 		 * table creation to hold the keys
 		 * 
@@ -33,6 +36,7 @@ class LinkedInAuthentication{
 	function admin_menu(){ 		
 		add_menu_page('linkedin groups authentication in wordpress', 'Ln Api Keys', 'manage_options', 'ln_auth', array($this, 'linkedin_authentication'));
 		add_submenu_page('ln_auth', 'license page', 'License', 'manage_options', 'ln_license', array(get_class(), 'license_management'));
+		add_submenu_page('ln_auth', 'upgrade page', 'Update', 'manage_options', 'update_Ln', array(get_class(), 'upgrade_management'));
 	}
 	
   //menupage for groups
@@ -116,6 +120,37 @@ class LinkedInAuthentication{
 		
 		$listtable = new LnLiscence_List_Table();
 		return $listtable;
+	}
+	
+	
+	//handle version info
+	static function upgrade_management(){
+		
+		if($_POST['linkedin-upgrade-form'] == 'Y'){
+			$data = array(
+				'plugin-version' => trim($_POST['plugin-version']),
+				'wp-version-required' => trim($_POST['wp-version-required']),
+				'wp-version-tested' => trim($_POST['wp-version-tested']),
+				'plugin-description' => trim($_POST['plugin-description']),
+				'download-link' => trim($_POST['download-link']),
+				'last-updated' => trim($_POST['last-updated']),
+				'change-log' => trim($_POST['change-log'])
+			);
+			
+			update_option('linkedin_upgrade_info', $data);
+		}
+		
+		$info = self::get_upgrade_info();
+		
+		include dirname(__FILE__) . '/includes/upgrade-management.php';
+	}
+	
+	
+	/*
+	 * get the upgrade info
+	 * **/
+	static function get_upgrade_info(){
+		return get_option('linkedin_upgrade_info');
 	}
 	
 	
@@ -279,8 +314,60 @@ class LinkedInAuthentication{
 			'b' => $wpdb->prefix . 'ln_liscense_meta'
 		);
 	}
-
 	
+	
+	
+	
+	
+	
+	/*
+	 * autoupdate controlling
+	 * */
+	static function auto_update_controlling(){
+		if($_REQUEST['autoupdate'] == 'autoupdate'){
+			
+			$info = self::get_upgrade_info();
+			
+			if (isset($_POST['action'])) {		  
+			  
+			  switch ($_POST['action']) {
+			    case 'version':
+			      echo $info['plugin-version'];
+			      break;
+			    case 'info':	      
+			      
+			      $obj = new stdClass();
+			      $obj->slug = 'linkedin-groups';
+			      $obj->plugin_name = 'LinkedIn Groups for Wordpress';
+			      $obj->new_version = $info['plugin-version'];
+			      $obj->requires = $info['wp-version-required'];
+			      $obj->tested = $info['wp-version-tested'];
+			     // $obj->downloaded = 12540;
+			      $obj->last_updated = $info['last-updated'];
+			      $obj->sections = array(
+			        'description' => $info['plugin-description'],
+			        //'another_section' => 'This is another section',
+			        'changelog' => $info['change-log']
+			      );
+			      $obj->download_link = $info['download-link'];
+			      echo serialize($obj);
+			    case 'license':
+			      echo 'false';
+			      break;
+			  }
+			} else {
+			    header('Cache-Control: public');
+			    header('Content-Description: File Transfer');
+			    header('Content-Type: application/zip');
+			    readfile($info['download-link']);
+					
+			}
+			
+			exit;
+		}
+	}
+	
+		
 }
 
 
